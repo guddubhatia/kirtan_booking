@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "SSBBN Kirtan Panel",
+    "slug": "ssbbn-kirtan-panel",
+    "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "ssbbn-kirtan",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF9933"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ssbbn.kirtan"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#FF9933"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ssbbn.kirtan"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF9933",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-font",
+      "expo-sqlite"
+    ],
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#FF9933",
+      "androidMode": "default",
+      "androidCollapsedTitle": "SSBBN Kirtan"
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
