@@ -1,0 +1,31 @@
+# Render Blueprint — SSBBN Kirtan Panel
+# This file lives at the git repository root. The Expo app + Express backend
+# live in the kirtan-booking/ subdirectory, so rootDir points Render there.
+# Build: export the Expo web build (dist/) and install the backend deps.
+# Start: run the Express server, which serves both the API and dist/ (same origin).
+services:
+  - type: web
+    name: ssbbn-kirtan-panel
+    runtime: node
+    rootDir: kirtan-booking
+    region: oregon
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npx expo export --platform web --clear && cd server && npm install
+    startCommand: cd server && node index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false            # paste your Neon connection string in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true    # Render generates a strong random secret
+      - key: JWT_TTL
+        value: 30d
+      - key: ADMIN_EMAIL
+        sync: false            # set your admin email in the Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false            # set your admin password in the Render dashboard
+      - key: NODE_VERSION
+        value: "20"
+      - key: CI
+        value: "1"             # keeps `expo export` non-interactive during the build

@@ -1,8 +1,11 @@
 {
   "name": "ssbbn-kirtan-backend",
   "version": "1.0.0",
-  "description": "REST backend for SSBBN Kirtan Panel — Express + SQLite + JWT",
+  "description": "REST backend for SSBBN Kirtan Panel — Express + PostgreSQL + JWT",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
@@ -10,10 +13,10 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
   }
 }
