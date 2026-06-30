@@ -87,7 +87,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Kirtans</Text>
           {upcoming.length === 0
-            ? <EmptyState icon="calendar-outline" message="No upcoming kirtans scheduled.\nPull down to refresh." />
+            ? <EmptyState icon="calendar-outline" message={"No upcoming kirtans scheduled.\nPull down to refresh."} />
             : upcoming.map(event => <EventCard key={event.id} event={event} />)
           }
         </View>
