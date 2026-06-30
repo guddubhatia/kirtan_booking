@@ -169,7 +169,7 @@ export default function AdminLoginScreen() {
 
               {!firebaseReady && (
                 <Text style={styles.setupHint}>
-                  Set <Text style={styles.setupCode}>EXPO_PUBLIC_BACKEND_URL</Text> in your .env file
+                  Set <Text style={styles.setupCode}>EXPO_PUBLIC_FIREBASE_*</Text> values in your .env file
                 </Text>
               )}
             </>

@@ -32,7 +32,7 @@ export function useAuth() {
 
   const login = async (email: string, password: string) => {
     if (!firebaseReady) {
-      const msg = 'Backend is not configured. Set EXPO_PUBLIC_BACKEND_URL in .env';
+      const msg = 'Firebase is not configured. Set EXPO_PUBLIC_FIREBASE_* values in .env';
       setError(msg);
       throw new Error(msg);
     }

@@ -2,7 +2,9 @@
 
 > **☬ Waheguru Ji Ka Khalsa, Waheguru Ji Ki Fateh ☬**
 
-A complete mobile-first React Native (Expo) application for managing temple Kirtan events.
+A mobile-first React Native (Expo) application for managing temple Kirtan events.
+Fully **serverless** — the app talks directly to **Firebase** (Authentication +
+Cloud Firestore), and the web build is served from **Firebase Hosting**.
 
 ---
 
@@ -12,6 +14,9 @@ A complete mobile-first React Native (Expo) application for managing temple Kirt
 |-----|---------|
 | **SSBBN Kirtan Panel** | Public client — view calendar, events, announcements |
 | **SSBBN Kirtan Booking Admin Panel** | Secured admin — manage events, send notifications |
+
+Both ship from one codebase. The Admin Panel link is shown unless the build sets
+`EXPO_PUBLIC_IS_ADMIN_BUILD=false` (see `eas.json` build profiles).
 
 ---
 
@@ -29,7 +34,7 @@ A complete mobile-first React Native (Expo) application for managing temple Kirt
 - 🔐 Firebase email/password login + forgot password
 - Add, edit, delete kirtan events
 - Manage calendar dates and mark unavailable
-- Send push notifications broadcast to all users
+- Broadcast push notifications to all registered devices
 - Dashboard with stats cards
 
 ---
@@ -38,14 +43,17 @@ A complete mobile-first React Native (Expo) application for managing temple Kirt
 
 | Layer | Technology |
 |-------|-----------|
-| Mobile Framework | React Native + Expo SDK 56 |
+| Framework | React Native + Expo SDK 56 |
 | Navigation | Expo Router (file-based) |
 | State | Zustand |
-| Auth | Firebase Authentication |
-| Database | Google Sheets API v4 |
-| Push Notifications | Expo Push Notifications |
+| Auth | Firebase Authentication (email/password) |
+| Database | Cloud Firestore (`events`, `announcements`, `pushTokens`) |
+| Web hosting | Firebase Hosting (Expo web export → `dist/`) |
+| Push Notifications | Expo Push Notifications (mobile only) |
 | Styling | Custom design system (saffron/cream/gold) |
 | Language | TypeScript |
+
+There is **no separate backend server** — Firestore + Firebase Auth are the backend.
 
 ---
 
@@ -59,7 +67,7 @@ kirtan-booking/
 │   │   ├── _layout.tsx          # Tab bar navigator
 │   │   ├── index.tsx            # Home — Calendar + Upcoming
 │   │   ├── announcements.tsx    # Announcements list
-│   │   └── about.tsx            # About + color legend
+│   │   └── about.tsx            # About + color legend + admin link
 │   ├── event/[id].tsx           # Event detail screen
 │   └── admin/
 │       ├── _layout.tsx          # Admin stack
@@ -69,172 +77,141 @@ kirtan-booking/
 │       ├── add-event.tsx        # Add / Edit event form
 │       └── notifications.tsx    # Send push notifications
 ├── components/
-│   ├── calendar/KirtanCalendar.tsx  # Full calendar grid
-│   ├── cards/
-│   │   ├── EventCard.tsx
-│   │   ├── AnnouncementCard.tsx
-│   │   └── StatCard.tsx
-│   ├── admin/
-│   │   ├── EventForm.tsx
-│   │   └── NotificationForm.tsx
-│   └── ui/
-│       ├── Button.tsx
-│       ├── Header.tsx
-│       ├── TempleLogoPlaceholder.tsx
-│       └── LoadingSpinner.tsx
+│   ├── calendar/KirtanCalendar.tsx
+│   ├── cards/{EventCard,AnnouncementCard,StatCard}.tsx
+│   ├── admin/{EventForm,NotificationForm}.tsx
+│   └── ui/{Button,Header,TempleLogoPlaceholder,LoadingSpinner}.tsx
 ├── services/
-│   ├── firebase.ts
-│   ├── auth.ts
-│   ├── googleSheets.ts
-│   └── notifications.ts
-├── store/eventStore.ts
-├── hooks/
-│   ├── useAuth.ts
-│   └── useNotifications.ts
+│   ├── firebase.ts              # Firebase App / Auth / Firestore init
+│   ├── auth.ts                  # Email/password auth wrapper
+│   ├── api.ts                   # Firestore data layer (events/anns/tokens)
+│   ├── database.ts              # Native re-export of api.ts
+│   ├── database.web.ts          # Web re-export of api.ts
+│   └── notifications.ts         # Expo push registration + broadcast
+├── store/{eventStore,adminStore}.ts
+├── hooks/{useAuth,useNotifications}.ts
 ├── types/index.ts
-├── constants/
-│   ├── theme.ts
-│   └── config.ts
+├── constants/{theme,config}.ts
 ├── utils/dateUtils.ts
+├── firebase.json                # Hosting + Firestore config
+├── .firebaserc                  # Firebase project id
+├── firestore.rules              # Security rules
+├── firestore.indexes.json
 ├── .env.example
 └── README.md
 ```
 
 ---
 
-## Setup Instructions
+## Setup
 
 ### Prerequisites
 - Node.js 18+
-- Expo CLI: `npm install -g expo-cli`
-- Expo Go app on your phone (for testing)
+- Firebase CLI: `npm install -g firebase-tools`
+- (Optional, for Android builds) EAS CLI: `npm install -g eas-cli`
 
-### 1. Clone & Install
+### 1. Install
 
 ```bash
 cd kirtan-booking
-npm install --legacy-peer-deps
+npm install
 ```
 
-### 2. Firebase Setup
+### 2. Firebase project
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Create a new project (e.g. `ssbbn-kirtan`)
-3. Enable **Authentication** → Email/Password provider
-4. Go to **Project Settings** → Your Apps → Add Web App
-5. Copy the config values into `.env`
+1. Create a project at [Firebase Console](https://console.firebase.google.com) (free **Spark** plan is enough).
+2. **Authentication** → Get started → enable **Email/Password**.
+3. **Build → Firestore Database** → create database (production mode).
+4. **Project settings → Your apps → Add Web app** → copy the `firebaseConfig` values.
+5. Create your first admin: **Authentication → Users → Add user** (email + password).
+
+### 3. Environment variables
 
 ```bash
 cp .env.example .env
-# Fill in your Firebase values
+# Fill in the EXPO_PUBLIC_FIREBASE_* values from step 2.4
 ```
 
-### 3. Google Sheets Setup
+| Variable | Source |
+|----------|--------|
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | Firebase web config `apiKey` |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | `projectId` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | `appId` |
+| `EXPO_PUBLIC_IS_ADMIN_BUILD` | *(optional)* `false` hides the admin link |
 
-1. Create a Google Spreadsheet with two sheets:
-   - Sheet 1 named: `Events`
-   - Sheet 2 named: `Announcements`
-   - Sheet 3 named: `PushTokens`
+> The Firebase web API key is **not** a secret — `EXPO_PUBLIC_*` vars are inlined
+> into the JS bundle at build time. Access is enforced by `firestore.rules` + Auth.
 
-2. **Events** sheet column headers (Row 1):
-   ```
-   A: Event ID | B: Title | C: Event Type | D: Date | E: Time | F: Location | G: Description | H: Status | I: Notes | J: Created At
-   ```
-
-3. **Announcements** sheet column headers (Row 1):
-   ```
-   A: ID | B: Title | C: Body | D: Created At
-   ```
-
-4. Make the sheet **publicly readable**:
-   - Share → Anyone with link → Viewer
-
-5. Enable **Google Sheets API** at [Google Cloud Console](https://console.cloud.google.com):
-   - APIs & Services → Enable APIs → Google Sheets API
-   - Create an **API Key** for client-side reads
-   - Create a **Service Account** for server-side writes
-
-6. Add your Spreadsheet ID and API key to `.env`
-
-### 4. Run the App
+### 4. Run locally
 
 ```bash
-npx expo start
+npx expo start          # press w (web) / a (Android) / i (iOS)
 ```
-
-- Press `a` for Android emulator
-- Press `i` for iOS simulator  
-- Scan QR code with **Expo Go** app on your phone
 
 ---
 
-## Google Sheets Data Format
+## Deploy
 
-### Event Types
-| Value | Color | Meaning |
-|-------|-------|---------|
-| `kirtan` | 🟢 Green | Kirtan event |
-| `temple_event` | 🟡 Amber | Temple program |
-| `unavailable` | 🔴 Red | Temple closed |
+See **`../DEPLOYMENT.md`** for the full step-by-step guide. In short, from inside `kirtan-booking/`:
 
-### Event Status
-| Value | Meaning |
-|-------|---------|
-| `confirmed` | Definite event |
-| `tentative` | May change |
-| `cancelled` | Cancelled |
+```bash
+# one-time
+firebase login
+# set your project id in .firebaserc (replace YOUR_FIREBASE_PROJECT_ID)
 
-### Date Format
-All dates use `YYYY-MM-DD` format (e.g. `2024-12-25`)
+# build the web bundle and ship rules + hosting
+npx expo export -p web          # outputs to dist/
+firebase deploy --only firestore:rules,firestore:indexes,hosting
+```
 
-### Time Format
-24-hour `HH:MM` format (e.g. `18:30` for 6:30 PM)
+Android APKs (optional) are built with EAS using the `client` / `admin` profiles in `eas.json`.
+
+---
+
+## Firestore Data Model
+
+### `events`
+`title`, `eventType`, `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `location`,
+`description`, `status`, `notes`, `createdAt` (ISO). Document id is auto-generated.
+
+| `eventType` | Color | Meaning |  | `status` | Meaning |
+|-------------|-------|---------|--|----------|---------|
+| `kirtan` | 🟢 Green | Kirtan event | | `confirmed` | Definite |
+| `temple_event` | 🟡 Amber | Temple program | | `tentative` | May change |
+| `unavailable` | 🔴 Red | Temple closed | | `cancelled` | Cancelled |
+
+### `announcements`
+`title`, `body`, `createdAt` (ISO).
+
+### `pushTokens`
+Document id = the Expo push token. Devices self-register; only admins can list/delete
+(see `firestore.rules`).
 
 ---
 
 ## Admin Access
 
-1. Open the app → go to **About** tab → tap **Admin Panel**
-   (or navigate to `/admin/login`)
-2. Sign in with your Firebase admin email + password
-3. Use **Firebase Console** to create the first admin account:
-   - Authentication → Users → Add User
+1. Open the app → **About** tab → tap **Admin Panel** (or go to `/admin/login`).
+2. Sign in with the Firebase admin email + password created above.
 
 ---
 
-## Adding Temple Logo
+## Temple Logo
 
-Replace the placeholder in `components/ui/TempleLogoPlaceholder.tsx`:
-
-```tsx
-// Replace the khanda text with your actual logo:
-<Image
-  source={require('../../assets/temple-logo.png')}
-  style={{ width: dim, height: dim, borderRadius: dim / 2 }}
-/>
-```
-
-Place your logo at `assets/temple-logo.png`.
+The logo is at `assets/temple-logo.jpg` and rendered by
+`components/ui/TempleLogoPlaceholder.tsx`. Replace that file to change the logo.
 
 ---
 
-## Environment Variables
+## Push Notifications
 
-See `.env.example` for all required variables.
-
-```
-EXPO_PUBLIC_FIREBASE_API_KEY=
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-EXPO_PUBLIC_FIREBASE_APP_ID=
-EXPO_PUBLIC_SPREADSHEET_ID=
-EXPO_PUBLIC_GOOGLE_SHEETS_API_KEY=
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
-EXPO_PUBLIC_BACKEND_URL=
-```
+Mobile only. Devices register their Expo push token (saved to the `pushTokens`
+Firestore collection on first launch). The **admin app** reads all tokens and posts
+directly to Expo's push API — no backend/Cloud Function required. Browser broadcasts
+may be blocked by CORS, so broadcast from the Android admin build.
 
 ---
 
@@ -251,37 +228,7 @@ EXPO_PUBLIC_BACKEND_URL=
 
 ---
 
-## Push Notifications
-
-The app uses **Expo Push Notifications** (wrapping Firebase Cloud Messaging).
-
-- Users auto-register their push token on first launch
-- Tokens are saved to the `PushTokens` sheet
-- Admin can broadcast from the Notifications screen
-
-For production broadcasting, deploy a simple Firebase Cloud Function:
-
-```javascript
-// functions/index.js
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-admin.initializeApp();
-
-exports.sendKirtanNotification = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be signed in');
-  await admin.messaging().send({
-    notification: { title: data.title, body: data.body },
-    topic: 'all_users',
-  });
-});
-```
-
----
-
 ## License
 
-Built with ❤️ for the SSBBN Sangat  
+Built with ❤️ for the SSBBN Sangat
 Sat Sri Akal 🙏
-# kirtan_booking_app
-# kirtan_booking_app
-# kirtan_booking_app

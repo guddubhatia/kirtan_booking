@@ -1,181 +1,140 @@
-// API Service — SSBBN Kirtan Panel
-// All data operations go through the shared backend REST API.
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Data layer — SSBBN Kirtan Panel
+// Events, announcements and push tokens all live in Cloud Firestore.
+// Public reads (events/announcements) are allowed by the security rules;
+// writes require an authenticated admin (see firestore.rules).
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { getDb, isFirebaseConfigured } from './firebase';
 import { KirtanEvent, Announcement, EventType, EventStatus } from '../types';
 
-const TOKEN_KEY = 'kirtan_admin_token';
+const EVENTS = 'events';
+const ANNOUNCEMENTS = 'announcements';
+const PUSH_TOKENS = 'pushTokens';
 
-export function getBaseUrl(): string {
-  const url = process.env.EXPO_PUBLIC_BACKEND_URL;
-  // Empty string = relative URL (web served from same origin as backend)
-  if (!url) return '';
-  return url.replace(/\/$/, '');
-}
-
-export function isBackendConfigured(): boolean {
-  // On web with no explicit backend URL, assume same-origin — backend is configured
-  if (typeof window !== 'undefined') return true;
-  return !!process.env.EXPO_PUBLIC_BACKEND_URL;
-}
-
-async function getToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_KEY);
-}
-
-export async function saveToken(token: string): Promise<void> {
-  await AsyncStorage.setItem(TOKEN_KEY, token);
-}
-
-export async function clearToken(): Promise<void> {
-  await AsyncStorage.removeItem(TOKEN_KEY);
-}
-
-export async function getStoredToken(): Promise<string | null> {
-  return getToken();
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getToken();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const res = await fetch(`${getBaseUrl()}${path}`, {
-    ...init,
-    headers: { ...headers, ...(init?.headers as Record<string, string> || {}) },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
-    throw new Error(err.error || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
-}
-
-// ── Auth ──────────────────────────────────────────────────────────
-export interface AdminUser {
-  email: string;
-  role: string;
-  token: string;
-}
-
-export async function apiLogin(email: string, password: string): Promise<AdminUser> {
-  const data = await request<AdminUser>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-  await saveToken(data.token);
-  return data;
-}
-
-export async function apiLogout(): Promise<void> {
-  await clearToken();
-}
+const nowIso = () => new Date().toISOString();
 
 // ── Events ────────────────────────────────────────────────────────
-interface EventRow {
-  id: string; title: string; event_type: string; date: string;
-  time: string; location: string; description: string;
-  status: string; notes: string; created_at: string;
-}
-
-function rowToEvent(r: EventRow): KirtanEvent {
+function toEvent(id: string, d: any): KirtanEvent {
   return {
-    id: r.id, title: r.title, eventType: r.event_type as EventType,
-    date: r.date, time: r.time, location: r.location,
-    description: r.description, status: r.status as EventStatus,
-    notes: r.notes, createdAt: r.created_at,
+    id,
+    title: d.title ?? '',
+    eventType: (d.eventType ?? 'kirtan') as EventType,
+    date: d.date ?? '',
+    time: d.time ?? '',
+    location: d.location ?? '',
+    description: d.description ?? '',
+    status: (d.status ?? 'confirmed') as EventStatus,
+    notes: d.notes ?? '',
+    createdAt: d.createdAt ?? '',
   };
 }
 
 export async function getEvents(): Promise<KirtanEvent[]> {
-  const rows = await request<EventRow[]>('/api/events');
-  return rows.map(rowToEvent);
+  const snap = await getDocs(collection(getDb(), EVENTS));
+  const events = snap.docs.map((docSnap) => toEvent(docSnap.id, docSnap.data()));
+  // Sort client-side (date asc, then time asc) so no composite index is required.
+  return events.sort((a, b) =>
+    a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)
+  );
 }
 
 export async function getEventById(id: string): Promise<KirtanEvent | null> {
   try {
-    const row = await request<EventRow>(`/api/events/${id}`);
-    return rowToEvent(row);
+    const snap = await getDoc(doc(getDb(), EVENTS, id));
+    return snap.exists() ? toEvent(snap.id, snap.data()) : null;
   } catch {
     return null;
   }
 }
 
-export async function addEvent(event: Omit<KirtanEvent, 'id' | 'createdAt'>): Promise<KirtanEvent> {
-  const row = await request<EventRow>('/api/events', {
-    method: 'POST',
-    body: JSON.stringify({
-      title: event.title,
-      event_type: event.eventType,
-      date: event.date,
-      time: event.time,
-      location: event.location,
-      description: event.description,
-      status: event.status,
-      notes: event.notes,
-    }),
-  });
-  return rowToEvent(row);
+export async function addEvent(
+  event: Omit<KirtanEvent, 'id' | 'createdAt'>
+): Promise<KirtanEvent> {
+  const ref = doc(collection(getDb(), EVENTS)); // auto-generated id
+  const record = {
+    title: event.title,
+    eventType: event.eventType,
+    date: event.date,
+    time: event.time || '',
+    location: event.location || '',
+    description: event.description || '',
+    status: event.status || 'confirmed',
+    notes: event.notes || '',
+    createdAt: nowIso(),
+  };
+  await setDoc(ref, record);
+  return { id: ref.id, ...record };
 }
 
 export async function updateEvent(id: string, updates: Partial<KirtanEvent>): Promise<void> {
-  const body: Record<string, string> = {};
-  if (updates.title !== undefined)       body.title        = updates.title;
-  if (updates.eventType !== undefined)   body.event_type   = updates.eventType;
-  if (updates.date !== undefined)        body.date         = updates.date;
-  if (updates.time !== undefined)        body.time         = updates.time;
-  if (updates.location !== undefined)    body.location     = updates.location;
-  if (updates.description !== undefined) body.description  = updates.description;
-  if (updates.status !== undefined)      body.status       = updates.status;
-  if (updates.notes !== undefined)       body.notes        = updates.notes;
-  await request(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+  const patch: Record<string, any> = {};
+  const fields: (keyof KirtanEvent)[] = [
+    'title', 'eventType', 'date', 'time', 'location', 'description', 'status', 'notes',
+  ];
+  for (const f of fields) {
+    if (updates[f] !== undefined) patch[f] = updates[f];
+  }
+  if (Object.keys(patch).length > 0) {
+    await updateDoc(doc(getDb(), EVENTS, id), patch);
+  }
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  await request(`/api/events/${id}`, { method: 'DELETE' });
+  await deleteDoc(doc(getDb(), EVENTS, id));
 }
 
 // ── Announcements ─────────────────────────────────────────────────
-interface AnnRow { id: string; title: string; body: string; created_at: string; }
-
-function rowToAnn(r: AnnRow): Announcement {
-  return { id: r.id, title: r.title, body: r.body, createdAt: r.created_at };
+function toAnn(id: string, d: any): Announcement {
+  return { id, title: d.title ?? '', body: d.body ?? '', createdAt: d.createdAt ?? '' };
 }
 
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const rows = await request<AnnRow[]>('/api/announcements');
-  return rows.map(rowToAnn);
+  const snap = await getDocs(collection(getDb(), ANNOUNCEMENTS));
+  return snap.docs
+    .map((docSnap) => toAnn(docSnap.id, docSnap.data()))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
 }
 
-export async function addAnnouncement(ann: Omit<Announcement, 'id' | 'createdAt'>): Promise<Announcement> {
-  const row = await request<AnnRow>('/api/announcements', {
-    method: 'POST',
-    body: JSON.stringify(ann),
-  });
-  return rowToAnn(row);
+export async function addAnnouncement(
+  ann: Omit<Announcement, 'id' | 'createdAt'>
+): Promise<Announcement> {
+  const ref = doc(collection(getDb(), ANNOUNCEMENTS));
+  const record = { title: ann.title, body: ann.body || '', createdAt: nowIso() };
+  await setDoc(ref, record);
+  return { id: ref.id, ...record };
 }
 
 export async function deleteAnnouncement(id: string): Promise<void> {
-  await request(`/api/announcements/${id}`, { method: 'DELETE' });
+  await deleteDoc(doc(getDb(), ANNOUNCEMENTS, id));
 }
 
-// ── Push Tokens ───────────────────────────────────────────────────
+// ── Push tokens ───────────────────────────────────────────────────
 export async function savePushToken(token: string): Promise<void> {
   try {
-    await request('/api/notifications/register', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    });
-  } catch { /* best-effort */ }
+    // Token as the document id → re-registration overwrites instead of duplicating.
+    await setDoc(doc(getDb(), PUSH_TOKENS, token), { token, createdAt: nowIso() });
+  } catch {
+    /* best-effort */
+  }
 }
 
 export async function getPushTokens(): Promise<string[]> {
   try {
-    return await request<string[]>('/api/notifications/tokens');
+    const snap = await getDocs(collection(getDb(), PUSH_TOKENS));
+    return snap.docs.map((d) => (d.data() as any).token).filter(Boolean);
   } catch {
     return [];
   }
 }
 
-// ── Init (no-op — backend handles schema) ────────────────────────
+// ── Init (no-op — Firestore needs no schema/migration) ────────────
 export async function initDatabase(): Promise<void> {}
+
+export { isFirebaseConfigured };

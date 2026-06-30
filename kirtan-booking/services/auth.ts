@@ -1,45 +1,76 @@
 // Auth Service — SSBBN Kirtan Panel
-// Uses the backend JWT API instead of Firebase.
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiLogin, apiLogout, getStoredToken, isBackendConfigured } from './api';
+// Firebase Authentication (email/password) for the admin panel.
+// Public viewers are never signed in — they read public data anonymously.
+import {
+  signInWithEmailAndPassword,
+  signOut as fbSignOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged as fbOnAuthStateChanged,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { getFirebaseAuth, isFirebaseConfigured } from './firebase';
 
-export type { AdminUser as User } from './api';
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
 
-const STORED_EMAIL_KEY = 'kirtan_admin_email';
+function toUser(u: FirebaseUser | null): User | null {
+  if (!u) return null;
+  return { uid: u.uid, email: u.email, displayName: u.displayName };
+}
 
-export async function signIn(email: string, password: string) {
-  const user = await apiLogin(email, password);
-  await AsyncStorage.setItem(STORED_EMAIL_KEY, user.email);
-  return user;
+// Map Firebase's raw error codes to friendly, sangat-appropriate messages.
+function friendly(err: any): Error {
+  const code: string = err?.code || '';
+  const map: Record<string, string> = {
+    'auth/invalid-email': 'That email address looks invalid.',
+    'auth/invalid-credential': 'Invalid email or password.',
+    'auth/wrong-password': 'Invalid email or password.',
+    'auth/user-not-found': 'Invalid email or password.',
+    'auth/too-many-requests': 'Too many attempts. Please try again in a few minutes.',
+    'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/user-disabled': 'This account has been disabled.',
+  };
+  return new Error(map[code] || err?.message || 'Something went wrong. Please try again.');
+}
+
+export async function signIn(email: string, password: string): Promise<User> {
+  try {
+    const cred = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    return toUser(cred.user)!;
+  } catch (err) {
+    throw friendly(err);
+  }
 }
 
 export async function signOut(): Promise<void> {
-  await apiLogout();
-  await AsyncStorage.removeItem(STORED_EMAIL_KEY);
+  await fbSignOut(getFirebaseAuth());
 }
 
-export function onAuthStateChanged(callback: (user: { email: string } | null) => void): () => void {
-  let cancelled = false;
-  (async () => {
-    const token = await getStoredToken();
-    const email = await AsyncStorage.getItem(STORED_EMAIL_KEY);
-    if (!cancelled) {
-      callback(token && email ? { email } : null);
-    }
-  })();
-  return () => { cancelled = true; };
+// Subscribe to auth state. Returns an unsubscribe function.
+export function onAuthStateChanged(callback: (user: User | null) => void): () => void {
+  if (!isFirebaseConfigured()) {
+    callback(null);
+    return () => {};
+  }
+  return fbOnAuthStateChanged(getFirebaseAuth(), (u) => callback(toUser(u)));
 }
 
-export async function getCurrentUser(): Promise<{ email: string } | null> {
-  const token = await getStoredToken();
-  const email = await AsyncStorage.getItem(STORED_EMAIL_KEY);
-  return token && email ? { email } : null;
+export async function getCurrentUser(): Promise<User | null> {
+  if (!isFirebaseConfigured()) return null;
+  return toUser(getFirebaseAuth().currentUser);
 }
 
-export function isFirebaseConfigured(): boolean {
-  return isBackendConfigured();
-}
+// Kept under this name because hooks/useAuth.ts consumes it; now reports whether
+// Firebase (the whole backend) is configured.
+export { isFirebaseConfigured };
 
-export async function sendPasswordReset(_email: string): Promise<void> {
-  throw new Error('Password reset is managed by the server admin. Contact your administrator.');
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(getFirebaseAuth(), email);
+  } catch (err) {
+    throw friendly(err);
+  }
 }

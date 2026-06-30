@@ -43,8 +43,7 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-font",
-      "expo-sqlite"
+      "expo-font"
     ],
     "notification": {
       "icon": "./assets/icon.png",

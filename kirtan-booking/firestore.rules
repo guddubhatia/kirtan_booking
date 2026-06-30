@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// SSBBN Kirtan Panel — Firestore security rules
+//
+// Auth model: the ONLY accounts that exist are admins you create in the
+// Firebase console (Authentication → Users). Public viewers are never signed
+// in, so "is this request authenticated?" is equivalent to "is this an admin?".
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Events — public can read; only admins can create/update/delete.
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Announcements — public can read; only admins can write.
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Push tokens — devices self-register their Expo push token (create/update),
+    // but only an admin may list them (to broadcast) or delete them.
+    match /pushTokens/{token} {
+      allow read, delete: if isAdmin();
+      allow create, update: if request.resource.data.keys().hasOnly(['token', 'createdAt']);
+    }
+
+    // Everything else is denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

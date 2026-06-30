@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { savePushToken } from './database';
+import { Config } from '../constants/config';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -56,22 +57,29 @@ export async function sendLocalNotification(title: string, body: string): Promis
   } catch { /* ignore */ }
 }
 
+// Serverless broadcast: post the messages straight to Expo's push service.
+// (No backend needed — Firebase has no always-on server.) The admin app reads
+// all registered tokens from Firestore and sends here.
+// NOTE: Expo's endpoint is reachable from the native admin app. From a browser
+// it may be blocked by CORS, so broadcast from the Android admin build.
 export async function sendBroadcastNotification(
   tokens: string[], title: string, body: string
 ): Promise<void> {
-  const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
-  if (!backendUrl || tokens.length === 0) return;
+  if (tokens.length === 0) return;
 
-  try {
-    const messages = tokens.map(token => ({
-      to: token, sound: 'default', title, body,
-      data: { type: 'announcement' },
-    }));
+  const messages = tokens.map(token => ({
+    to: token, sound: 'default', title, body,
+    data: { type: 'announcement' },
+  }));
 
-    await fetch(`${backendUrl}/send-notifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
-    });
-  } catch { /* ignore — broadcast is best-effort */ }
+  // Expo accepts up to 100 messages per request — send in chunks.
+  for (let i = 0; i < messages.length; i += 100) {
+    try {
+      await fetch(Config.EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(messages.slice(i, i + 100)),
+      });
+    } catch { /* best-effort — continue with remaining chunks */ }
+  }
 }

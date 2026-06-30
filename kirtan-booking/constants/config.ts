@@ -1,17 +1,9 @@
 // App Configuration — SSBBN Kirtan Panel
+// Firebase is the backend (Auth + Firestore). The web API key is not a secret —
+// access is enforced by Firestore security rules + Firebase Auth.
 
 export const Config = {
-  // Google Sheets
-  SPREADSHEET_ID: process.env.EXPO_PUBLIC_SPREADSHEET_ID || '',
-  SHEETS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_SHEETS_API_KEY || '',
-  GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
-
-  // Sheet names
-  EVENTS_SHEET: 'Events',
-  ANNOUNCEMENTS_SHEET: 'Announcements',
-  PUSH_TOKENS_SHEET: 'PushTokens',
-
-  // Firebase
+  // Firebase — supplied at build time via EXPO_PUBLIC_FIREBASE_* env vars.
   FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
   FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
   FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
@@ -19,7 +11,7 @@ export const Config = {
   FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
 
-  // Expo Push
+  // Expo Push (broadcast endpoint)
   EXPO_PUSH_URL: 'https://exp.host/--/api/v2/push/send',
 
   // App

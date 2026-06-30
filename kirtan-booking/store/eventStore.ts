@@ -1,5 +1,5 @@
 // Event Store — Zustand — SSBBN Kirtan Panel
-// Uses local SQLite database (expo-sqlite) — no internet required
+// Reads/writes via services/database → services/api (Cloud Firestore). Needs internet.
 import { create } from 'zustand';
 import { KirtanEvent, Announcement } from '../types';
 import {

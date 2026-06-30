@@ -1,1 +1,14 @@
-kirtan-booking/zipcreater.txt/zip.txt
+# Dependencies
+node_modules/
+
+# Local env files (never commit real secrets)
+.env
+.env*.local
+
+# Expo / build output
+.expo/
+dist/
+web-build/
+
+# OS / editor
+.DS_Store
