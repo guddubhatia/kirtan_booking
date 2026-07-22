@@ -1,7 +1,7 @@
 // Admin Dashboard — SSBBN Kirtan Panel
 import React, { useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ import { getUpcomingEvents } from '../../utils/dateUtils';
 
 export default function AdminDashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { userEmail, logout, isLoading: authLoading, isAdmin, isDemoMode } = useAuth();
+  const { userEmail, logout, isLoading: authLoading, isAdmin } = useAuth();
   const { events, announcements, fetchEvents, fetchAnnouncements } = useEventStore();
 
   useEffect(() => {
@@ -32,16 +32,20 @@ export default function AdminDashboardScreen() {
   }, []);
 
   const handleLogout = () => {
+    const doLogout = async () => { await logout(); router.replace('/(tabs)'); };
+    if (Platform.OS === 'web') {
+      // React Native's Alert doesn't render on web — use the native browser confirm.
+      if (typeof window === 'undefined' || window.confirm('Are you sure you want to sign out?')) {
+        doLogout();
+      }
+      return;
+    }
     Alert.alert(
-      isDemoMode ? 'Exit Demo Mode' : 'Sign Out',
-      isDemoMode ? 'Exit the demo and return to the app?' : 'Are you sure you want to sign out?',
+      'Sign Out',
+      'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: isDemoMode ? 'Exit Demo' : 'Sign Out',
-          style: 'destructive',
-          onPress: async () => { await logout(); router.replace('/(tabs)'); },
-        },
+        { text: 'Sign Out', style: 'destructive', onPress: doLogout },
       ],
     );
   };
@@ -65,30 +69,15 @@ export default function AdminDashboardScreen() {
             <Text style={styles.welcomeText}>Jai Babe Di</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-            <Ionicons name={isDemoMode ? 'exit-outline' : 'log-out-outline'} size={22} color={Colors.white} />
+            <Ionicons name="log-out-outline" size={22} color={Colors.white} />
           </TouchableOpacity>
         </View>
         <View style={styles.emailRow}>
           <Text style={styles.emailText}>{userEmail}</Text>
-          {isDemoMode && (
-            <View style={styles.demoPill}>
-              <Text style={styles.demoPillText}>DEMO</Text>
-            </View>
-          )}
         </View>
       </LinearGradient>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* Demo Mode Banner */}
-        {isDemoMode && (
-          <View style={styles.demoBanner}>
-            <Ionicons name="information-circle" size={18} color={Colors.templeEvent} />
-            <Text style={styles.demoBannerText}>
-              Demo Mode — Data is saved locally on this device using SQLite. Add Firebase credentials to enable cloud sync.
-            </Text>
-          </View>
-        )}
 
         {/* Stats */}
         <Text style={styles.sectionTitle}>Overview</Text>
@@ -106,7 +95,7 @@ export default function AdminDashboardScreen() {
         <View style={styles.actionsGrid}>
           <ActionButton icon="add-circle" label="Add Event" color={Colors.saffron} onPress={() => router.push('/admin/add-event')} />
           <ActionButton icon="calendar" label="Manage Calendar" color={Colors.kirtan} onPress={() => router.push('/admin/calendar')} />
-          <ActionButton icon="megaphone" label="Send Notification" color={Colors.gold} onPress={() => router.push('/admin/notifications')} />
+          <ActionButton icon="megaphone" label="Post Announcement" color={Colors.gold} onPress={() => router.push('/admin/notifications')} />
         </View>
 
         {/* Upcoming Events */}
@@ -142,17 +131,8 @@ const styles = StyleSheet.create({
   logoutBtn: { padding: Spacing.xs, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radius.md },
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
   emailText: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.8)' },
-  demoPill: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: Radius.full, paddingHorizontal: 6, paddingVertical: 2 },
-  demoPillText: { fontSize: 9, fontWeight: FontWeight.extrabold, color: Colors.white, letterSpacing: 0.5 },
   scroll: { flex: 1 },
   content: { padding: Spacing.base },
-  demoBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm,
-    backgroundColor: Colors.templeEventLight, borderRadius: Radius.md,
-    padding: Spacing.md, marginBottom: Spacing.base,
-    borderLeftWidth: 3, borderLeftColor: Colors.templeEvent,
-  },
-  demoBannerText: { flex: 1, fontSize: FontSize.xs, color: Colors.textSecondary, lineHeight: 18 },
   sectionTitle: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.text, marginBottom: Spacing.md, marginTop: Spacing.md },
   statsRow: { flexDirection: 'row', marginBottom: Spacing.xs },
   actionsGrid: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.base },

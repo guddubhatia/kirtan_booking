@@ -9,7 +9,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAry6mJfFTn32Xb6UxPaAFaaLZu8_mPIe4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "ssbbn-kirtan.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "ssbbn-kirtan",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "ssbbn-kirtan.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "123257539428",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:123257539428:web:2beeea0518d0f6cf3f0871"
+      },
+      "channel": "development"
     },
     "client": {
       "distribution": "internal",
@@ -18,8 +27,15 @@
       },
       "env": {
         "APP_ENV": "client",
-        "EXPO_PUBLIC_IS_ADMIN_BUILD": "false"
-      }
+        "EXPO_PUBLIC_IS_ADMIN_BUILD": "false",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAry6mJfFTn32Xb6UxPaAFaaLZu8_mPIe4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "ssbbn-kirtan.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "ssbbn-kirtan",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "ssbbn-kirtan.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "123257539428",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:123257539428:web:2beeea0518d0f6cf3f0871"
+      },
+      "channel": "client"
     },
     "admin": {
       "distribution": "internal",
@@ -28,8 +44,15 @@
       },
       "env": {
         "APP_ENV": "admin",
-        "EXPO_PUBLIC_IS_ADMIN_BUILD": "true"
-      }
+        "EXPO_PUBLIC_IS_ADMIN_BUILD": "true",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAry6mJfFTn32Xb6UxPaAFaaLZu8_mPIe4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "ssbbn-kirtan.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "ssbbn-kirtan",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "ssbbn-kirtan.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "123257539428",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:123257539428:web:2beeea0518d0f6cf3f0871"
+      },
+      "channel": "admin"
     },
     "production": {
       "distribution": "store",
@@ -37,8 +60,15 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "production"
-      }
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAry6mJfFTn32Xb6UxPaAFaaLZu8_mPIe4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "ssbbn-kirtan.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "ssbbn-kirtan",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "ssbbn-kirtan.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "123257539428",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:123257539428:web:2beeea0518d0f6cf3f0871"
+      },
+      "channel": "production"
     }
   },
   "submit": {

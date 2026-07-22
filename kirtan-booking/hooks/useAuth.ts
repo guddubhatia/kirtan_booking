@@ -1,21 +1,18 @@
 // useAuth hook — SSBBN Kirtan Panel
-// Supports both real backend JWT auth and demo mode preview
+// Firebase Authentication (email/password) for the admin panel.
 import { useState, useEffect } from 'react';
 import { User, onAuthStateChanged, signIn, signOut, sendPasswordReset, isFirebaseConfigured } from '../services/auth';
-import { useAdminAuthStore } from '../store/adminStore';
 
 export function useAuth() {
   const [backendUser, setBackendUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { isDemoMode, demoUser, enterDemoMode, exitDemoMode } = useAdminAuthStore();
   const firebaseReady = isFirebaseConfigured();
 
-  // Combined "is logged in" — either real backend user or demo mode
-  const isAdmin = !!backendUser || isDemoMode;
-  const userEmail = backendUser?.email ?? demoUser?.email ?? null;
-  const displayName = (backendUser as any)?.displayName ?? demoUser?.displayName ?? null;
+  const isAdmin = !!backendUser;
+  const userEmail = backendUser?.email ?? null;
+  const displayName = (backendUser as any)?.displayName ?? null;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((u) => {
@@ -24,11 +21,6 @@ export function useAuth() {
     });
     return unsubscribe;
   }, []);
-
-  // If demo mode is active, mark loading as done immediately
-  useEffect(() => {
-    if (isDemoMode) setIsLoading(false);
-  }, [isDemoMode]);
 
   const login = async (email: string, password: string) => {
     if (!firebaseReady) {
@@ -50,15 +42,7 @@ export function useAuth() {
     }
   };
 
-  const loginDemo = () => {
-    enterDemoMode();
-  };
-
   const logout = async () => {
-    if (isDemoMode) {
-      exitDemoMode();
-      return;
-    }
     await signOut();
     setBackendUser(null);
   };
@@ -82,12 +66,9 @@ export function useAuth() {
     isLoading,
     error,
     login,
-    loginDemo,
     logout,
     resetPassword,
     isAdmin,
-    isDemoMode,
     firebaseReady,
   };
 }
-

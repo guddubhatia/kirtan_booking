@@ -19,20 +19,20 @@ export default function AdminNotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="Push Notifications" subtitle="Broadcast to all users" showBack />
+      <Header title="Post Announcement" subtitle="Save & notify all users" showBack />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Info Banner */}
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle" size={22} color={Colors.saffron} />
           <Text style={styles.infoText}>
-            This will send a push notification to all users who have the app installed and have granted notification permissions.
+            This saves the announcement to the Announcements tab and sends a push notification to every user who has the app installed and has allowed notifications.
           </Text>
         </View>
 
         {/* Form */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Compose Notification</Text>
+          <Text style={styles.formTitle}>Compose Announcement</Text>
           <NotificationForm />
         </View>
 
@@ -42,7 +42,7 @@ export default function AdminNotificationsScreen() {
           <TipItem text={'Keep the title short and meaningful (e.g. "Kirtan Reminder")'} />
           <TipItem text="Include date and time in the message for event reminders" />
           <TipItem text="Use respectful, devotional language for the sangat" />
-          <TipItem text="Avoid sending multiple notifications on the same day" />
+          <TipItem text="Avoid posting multiple announcements on the same day" />
         </View>
 
         <View style={{ height: 80 }} />

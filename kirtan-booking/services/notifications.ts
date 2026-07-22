@@ -1,9 +1,18 @@
 // services/notifications.ts — SSBBN Kirtan Panel (Production)
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { savePushToken } from './database';
 import { Config } from '../constants/config';
+
+// EAS project id — required by getExpoPushTokenAsync in standalone/production
+// builds. Read from the runtime config (app.json extra.eas.projectId), with a
+// hard-coded fallback so an OTA env-inlining gap can never blank it out.
+const EAS_PROJECT_ID =
+  Constants?.expoConfig?.extra?.eas?.projectId ||
+  (Constants as any)?.easConfig?.projectId ||
+  '35de5901-9b88-4318-b7cc-8be757aab950';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -38,7 +47,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
     if (finalStatus !== 'granted') return null;
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID });
     const token = tokenData.data;
 
     await savePushToken(token);

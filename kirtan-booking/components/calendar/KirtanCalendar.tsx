@@ -89,8 +89,9 @@ export default function KirtanCalendar({ events, onDayPress, selectedDate }: Kir
               const isTodayDate = isToday(dateStr);
               const isSun = (firstDay + (day - 1)) % 7 === 0;
 
-              // Dominant event type for background
-              const hasKirtan = dayEvents.some(e => e.eventType === 'kirtan');
+              // Confirmed kirtans get a highlighted ring; everything else a dot
+              const hasConfirmedKirtan = dayEvents.some(e => e.eventType === 'kirtan' && e.status === 'confirmed');
+              const hasOtherKirtan = dayEvents.some(e => e.eventType === 'kirtan' && e.status !== 'confirmed');
               const hasTemple = dayEvents.some(e => e.eventType === 'temple_event');
               const hasUnavailable = dayEvents.some(e => e.eventType === 'unavailable');
 
@@ -101,6 +102,11 @@ export default function KirtanCalendar({ events, onDayPress, selectedDate }: Kir
                   onPress={() => onDayPress(dateStr, dayEvents)}
                   activeOpacity={0.75}
                 >
+                  {/* Confirmed kirtan ring — circles the date so it stands out */}
+                  {hasConfirmedKirtan && (
+                    <View style={styles.confirmedRing} />
+                  )}
+
                   {/* Today ring */}
                   {isTodayDate && !isSelected && (
                     <View style={styles.todayRing} />
@@ -109,16 +115,17 @@ export default function KirtanCalendar({ events, onDayPress, selectedDate }: Kir
                   <Text style={[
                     styles.dayText,
                     isSun && styles.dayTextSun,
+                    hasConfirmedKirtan && styles.dayTextKirtan,
                     isTodayDate && styles.dayTextToday,
                     isSelected && styles.dayTextSelected,
                   ]}>
                     {day}
                   </Text>
 
-                  {/* Event dots */}
-                  {dayEvents.length > 0 && (
+                  {/* Event dots — tentative kirtans, temple events, unavailable days */}
+                  {(hasOtherKirtan || hasTemple || hasUnavailable) && (
                     <View style={styles.dotsRow}>
-                      {hasKirtan && <View style={[styles.dot, { backgroundColor: Colors.kirtan }]} />}
+                      {hasOtherKirtan && <View style={[styles.dot, { backgroundColor: Colors.kirtan }]} />}
                       {hasTemple && <View style={[styles.dot, { backgroundColor: Colors.templeEvent }]} />}
                       {hasUnavailable && <View style={[styles.dot, { backgroundColor: Colors.unavailable }]} />}
                     </View>
@@ -132,17 +139,19 @@ export default function KirtanCalendar({ events, onDayPress, selectedDate }: Kir
 
       {/* Legend */}
       <View style={styles.legend}>
-        <LegendItem color={Colors.kirtan} label="Kirtan" />
+        <LegendItem color={Colors.kirtan} label="Kirtan" ring />
         <LegendItem color={Colors.unavailable} label="Unavailable" />
       </View>
     </View>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendItem({ color, label, ring }: { color: string; label: string; ring?: boolean }) {
   return (
     <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <View style={ring
+        ? [styles.legendRing, { borderColor: color }]
+        : [styles.legendDot, { backgroundColor: color }]} />
       <Text style={styles.legendText}>{label}</Text>
     </View>
   );
@@ -202,12 +211,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.saffron,
   },
+  confirmedRing: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: Colors.kirtan,
+  },
   dayText: {
     fontSize: FontSize.base,
     fontWeight: FontWeight.medium,
     color: Colors.text,
   },
   dayTextSun: { color: Colors.saffronDark },
+  dayTextKirtan: { color: Colors.kirtan, fontWeight: FontWeight.bold },
   dayTextToday: { color: Colors.saffron, fontWeight: FontWeight.bold },
   dayTextSelected: { color: Colors.white, fontWeight: FontWeight.bold },
   dotsRow: {
@@ -229,5 +247,6 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendRing: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
   legendText: { fontSize: FontSize.xs, color: Colors.textMuted, fontWeight: FontWeight.medium },
 });

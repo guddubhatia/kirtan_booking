@@ -6,10 +6,16 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initDatabase } from '../services/database';
 import { useEventStore } from '../store/eventStore';
+import { useNotifications } from '../hooks/useNotifications';
 
 export default function RootLayout() {
   const fetchEvents = useEventStore(s => s.fetchEvents);
   const fetchAnnouncements = useEventStore(s => s.fetchAnnouncements);
+
+  // Register this device for push notifications (announcements + kirtan
+  // reminders) and save its Expo push token to Firestore. Runs once on launch
+  // for every user (client + admin); prompts for the notification permission.
+  useNotifications();
 
   useEffect(() => {
     // Init DB then load data — all non-blocking in background

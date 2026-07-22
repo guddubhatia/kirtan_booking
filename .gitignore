@@ -10,5 +10,8 @@ node_modules/
 dist/
 web-build/
 
+# Firebase CLI cache
+.firebase/
+
 # OS / editor
 .DS_Store

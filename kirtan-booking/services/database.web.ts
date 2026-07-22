@@ -1,4 +1,4 @@
-// Web database shim — delegates to the shared backend API.
+// Web database shim — delegates to the Cloud Firestore data layer (services/api.ts).
 export {
   initDatabase,
   getEvents,

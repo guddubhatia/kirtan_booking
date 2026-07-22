@@ -53,7 +53,7 @@ export default function AboutScreen() {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Made with ❤️ for the sangat{'\n'}Sat Sri Akal 🙏
+          Made with ❤️ for the sangat{'\n'}Jai Babe Di 🙏
         </Text>
 
         <View style={{ height: Spacing.xxxl }} />

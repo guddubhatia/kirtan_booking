@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, Alert,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,41 +17,39 @@ type Mode = 'login' | 'forgot';
 
 export default function AdminLoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login, loginDemo, resetPassword, isLoading, firebaseReady } = useAuth();
+  const { login, resetPassword, isLoading, firebaseReady } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    setFormError(null);
     if (!email.trim() || !password) {
-      Alert.alert('Required', 'Please enter your email and password.');
+      setFormError('Please enter your email and password.');
       return;
     }
     try {
       await login(email.trim(), password);
       router.replace('/admin/dashboard');
     } catch (err: any) {
-      Alert.alert('Login Failed', err.message);
+      setFormError(err?.message || 'Login failed. Please try again.');
     }
   };
 
-  const handleDemoLogin = () => {
-    loginDemo();
-    router.replace('/admin/dashboard');
-  };
-
   const handleForgot = async () => {
+    setFormError(null);
     if (!email.trim()) {
-      Alert.alert('Required', 'Please enter your email address.');
+      setFormError('Please enter your email address.');
       return;
     }
     try {
       await resetPassword(email.trim());
       setResetSent(true);
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      setFormError(err?.message || 'Could not send the reset email.');
     }
   };
 
@@ -73,45 +71,17 @@ export default function AdminLoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.formWrapper}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
 
+          {formError && (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={18} color="#C62828" />
+              <Text style={styles.errorText}>{formError}</Text>
+            </View>
+          )}
+
           {mode === 'login' ? (
             <>
               <Text style={styles.formTitle}>Admin Login</Text>
               <Text style={styles.formSub}>Sign in with your admin credentials</Text>
-
-              {/* Demo Mode Card — always visible */}
-              <View style={styles.demoCard}>
-                <View style={styles.demoCardHeader}>
-                  <View style={styles.demoBadge}>
-                    <Text style={styles.demoBadgeText}>DEMO</Text>
-                  </View>
-                  <Text style={styles.demoTitle}>Quick Admin Access</Text>
-                </View>
-                <Text style={styles.demoBody}>
-                  Tap below to enter the Admin Panel instantly with demo credentials.
-                </Text>
-                <View style={styles.credBox}>
-                  <Text style={styles.credLabel}>📧 Email: <Text style={styles.credValue}>admin@ssbbn.org</Text></Text>
-                  <Text style={styles.credLabel}>🔑 Password: <Text style={styles.credValue}>demo1234</Text></Text>
-                </View>
-                <TouchableOpacity onPress={handleDemoLogin} style={styles.demoBtn} activeOpacity={0.85}>
-                  <LinearGradient
-                    colors={[Colors.saffronLight, Colors.saffron]}
-                    style={styles.demoBtnGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Ionicons name="play-circle" size={20} color={Colors.white} />
-                    <Text style={styles.demoBtnText}>Enter Admin Panel</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or sign in with credentials</Text>
-                <View style={styles.dividerLine} />
-              </View>
 
               {/* Email field */}
               <View style={styles.field}>
@@ -153,7 +123,7 @@ export default function AdminLoginScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity onPress={() => setMode('forgot')} style={styles.forgotLink}>
+              <TouchableOpacity onPress={() => { setFormError(null); setMode('forgot'); }} style={styles.forgotLink}>
                 <Text style={styles.forgotText}>Forgot password?</Text>
               </TouchableOpacity>
 
@@ -204,7 +174,7 @@ export default function AdminLoginScreen() {
                 </>
               )}
 
-              <TouchableOpacity onPress={() => { setMode('login'); setResetSent(false); }} style={styles.forgotLink}>
+              <TouchableOpacity onPress={() => { setFormError(null); setMode('login'); setResetSent(false); }} style={styles.forgotLink}>
                 <Text style={styles.forgotText}>← Back to Login</Text>
               </TouchableOpacity>
             </>
@@ -225,46 +195,12 @@ const styles = StyleSheet.create({
   form: { padding: Spacing.xl, paddingTop: Spacing.lg },
   formTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.text, marginBottom: Spacing.xs },
   formSub: { fontSize: FontSize.sm, color: Colors.textMuted, marginBottom: Spacing.lg },
-
-  // Demo card
-  demoCard: {
-    backgroundColor: Colors.saffronPale,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    marginBottom: Spacing.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.saffronLight,
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: '#FDECEA', borderColor: '#F5C6C3', borderWidth: 1,
+    borderRadius: Radius.md, padding: Spacing.md, marginBottom: Spacing.base,
   },
-  demoCardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
-  demoBadge: {
-    backgroundColor: Colors.saffron,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-  },
-  demoBadgeText: { color: Colors.white, fontSize: FontSize.xs, fontWeight: FontWeight.extrabold, letterSpacing: 0.5 },
-  demoTitle: { fontSize: FontSize.base, fontWeight: FontWeight.bold, color: Colors.text },
-  demoBody: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20, marginBottom: Spacing.sm },
-  credBox: {
-    backgroundColor: Colors.warmWhite,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  credLabel: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  credValue: { fontWeight: FontWeight.bold, color: Colors.saffronDark },
-  demoBtn: { borderRadius: Radius.md, overflow: 'hidden' },
-  demoBtnGradient: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, paddingVertical: 13, borderRadius: Radius.md,
-  },
-  demoBtnText: { color: Colors.white, fontSize: FontSize.base, fontWeight: FontWeight.bold },
-
-  // Divider
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.lg },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.borderLight },
-  dividerText: { fontSize: FontSize.xs, color: Colors.textMuted, fontWeight: FontWeight.medium },
+  errorText: { flex: 1, fontSize: FontSize.sm, color: '#C62828', lineHeight: 20 },
 
   // Fields
   field: { marginBottom: Spacing.base },

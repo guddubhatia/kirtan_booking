@@ -53,8 +53,13 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
-      }
+        "projectId": "35de5901-9b88-4318-b7cc-8be757aab950"
+      },
+      "router": {}
+    },
+    "owner": "akash.bhatia",
+    "updates": {
+      "url": "https://u.expo.dev/35de5901-9b88-4318-b7cc-8be757aab950"
     }
   }
 }
